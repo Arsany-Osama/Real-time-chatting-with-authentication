@@ -1,0 +1,119 @@
+<div class="card shadow-lg mx-auto animate__animated animate__fadeIn" style="max-width: 600px;">
+     <div class="card-body">
+       <h1 class="card-title text-center mb-4">Chatting with <%= @receiver.name %></h1>
+       <!-- Toast Container -->
+       <div class="position-fixed bottom-0 right-0 p-3" style="z-index: 11; right: 20px; bottom: 20px;">
+         <div id="newMessageToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-autohide="true" data-delay="3000">
+           <div class="toast-header">
+             <strong class="mr-auto">New Message</strong>
+             <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+               <span aria-hidden="true">&times;</span>
+             </button>
+           </div>
+           <div class="toast-body"></div>
+         </div>
+       </div>
+       <div id="chat-messages" style="max-height: 400px; overflow-y: auto;">
+         <% @chats.each do |chat| %>
+           <div id="chat-<%= chat.id %>" class="<%= chat.sender_id == current_user.id ? 'bg-primary text-white' : 'bg-light text-dark' %> p-3 rounded mb-2 animate__animated animate__slideInUp"
+                style="max-width: 70%; <%= chat.sender_id == current_user.id ? 'margin-left: auto; border-radius: 15px 15px 0 15px;' : 'margin-right: auto; border-radius: 15px 15px 15px 0;' %>">
+             <strong><%= chat.sender.name %>:</strong> <span class="message-content"><%= chat.message %></span>
+             <% if can? :edit, chat %>
+               <div class="mt-2 d-flex gap-2">
+                 <%= link_to 'Edit', edit_chat_path(chat), class: 'btn btn-sm btn-outline-warning', data: { remote: true } %>
+                 <%= link_to 'Delete', chat_path(chat), method: :delete, data: { confirm: 'Are you sure?' }, class: 'btn btn-sm btn-outline-danger', remote: true %>
+               </div>
+             <% end %>
+           </div>
+         <% end %>
+       </div>
+
+       <% if can? :chat_with, @receiver %>
+         <%= form_with model: @chat, url: chats_path, local: false, id: 'chat-form', class: 'mt-4' do |f| %>
+           <div class="form-group mb-3">
+             <%= f.hidden_field :receiver_id, value: @receiver.id %>
+             <%= f.text_area :message, class: 'form-control', rows: 3, placeholder: 'Type your message...' %>
+           </div>
+           <%= f.submit 'Send', class: 'btn btn-primary' %>
+         <% end %>
+       <% else %>
+         <p class="text-center text-muted">You can only send messages after <%= @receiver.name %> initiates the chat.</p>
+       <% end %>
+     </div>
+   </div>
+
+   <% if user_signed_in? %>
+     <script>
+       const CURRENT_USER_ID = <%= current_user.id %>;
+
+       $(document).on('ajax:success', '#chat-form', function(event) {
+         $('#chat-form')[0].reset();
+       });
+
+       $(document).on('ajax:error', '#chat-form', function(event, xhr, status, error) {
+         alert('Error sending message: ' + xhr.responseText);
+       });
+
+       $(document).on('ajax:success', 'a[data-method=delete]', function(event) {
+         const chatId = event.target.closest('[id^=chat-]').id;
+         $(`#${chatId}`).remove();
+       });
+
+       $(document).on('ajax:success', 'a[href^="/chats"][href$="/edit"]', function(event, data) {
+         const chatId = event.target.closest('[id^=chat-]').id;
+         $(`#${chatId} .message-content`).hide().after(data);
+         $(`#${chatId} .edit-chat-form .cancel-edit`).on('click', function() {
+           $(`#${chatId} .edit-chat-form`).remove();
+           $(`#${chatId} .message-content`).show();
+         });
+       });
+
+       $(document).on('ajax:success', 'form[id^=edit_chat_]', function(event, data) {
+         $(`#chat-${data.id} .edit-chat-form`).remove();
+         $(`#chat-${data.id} .message-content`).html(data.message).show();
+       });
+
+       $(document).on('ajax:error', 'form[id^=edit_chat_]', function(event, xhr, status, error) {
+         alert('Error updating message: ' + xhr.responseText);
+       });
+
+       App.chat = App.cable.subscriptions.create(
+         { channel: "ChatChannel", room: "<%= [current_user.id, @receiver.id].sort.join('_') %>" },
+         {
+           connected() {
+             console.log("Connected to ChatChannel");
+           },
+           disconnected() {
+             console.log("Disconnected from ChatChannel");
+           },
+           received(data) {
+             if (data.action === 'create') {
+               const isCurrentUser = data.sender_id === CURRENT_USER_ID;
+               $('#chat-messages').append(`
+                 <div id="chat-${data.id}" class="${isCurrentUser ? 'bg-primary text-white' : 'bg-light text-dark'} p-3 rounded mb-2 animate__animated animate__slideInUp"
+                      style="max-width: 70%; ${isCurrentUser ? 'margin-left: auto; border-radius: 15px 15px 0 15px;' : 'margin-right: auto; border-radius: 15px 15px 15px 0;'}">
+                   <strong>${data.sender_name}:</strong> <span class="message-content">${data.message}</span>
+                   ${isCurrentUser ? `
+                     <div class="mt-2 d-flex gap-2">
+                       <a href="/chats/${data.id}/edit" class="btn btn-sm btn-outline-warning" data-remote="true">Edit</a>
+                       <a href="/chats/${data.id}" class="btn btn-sm btn-outline-danger" data-method="delete" data-confirm="Are you sure?" data-remote="true">Delete</a>
+                     </div>
+                   ` : ''}
+                 </div>
+               `);
+               if (!isCurrentUser) {
+                 $('#newMessageToast .toast-body').text(`New message from ${data.sender_name}: ${data.message}`);
+                 $('#newMessageToast').toast('show');
+               }
+             } else if (data.action === 'update') {
+               $(`#chat-${data.id} .edit-chat-form`).remove();
+               $(`#chat-${data.id} .message-content`).html(data.message).show();
+             } else if (data.action === 'destroy') {
+               $(`#chat-${data.id}`).remove();
+             }
+             $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
+           }
+         }
+       );
+     </script>
+   <% end %>

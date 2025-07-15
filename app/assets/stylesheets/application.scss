@@ -1,0 +1,62 @@
+@import "bootstrap";
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to bottom, #f7fafc, #e2e8f0);
+}
+
+.card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #4b6cb7, #182848);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #182848, #4b6cb7);
+}
+
+.btn-outline-primary {
+  border-color: #4b6cb7;
+  color: #4b6cb7;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background: #4b6cb7;
+  color: rgb(174, 162, 162);
+}
+
+.form-control {
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #4b6cb7;
+  box-shadow: 0 0 0 0.2rem rgba(75, 108, 183, 0.25);
+}
+
+.toast {
+  max-width: 350px;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, .1);
+  border-radius: .25rem;
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .1);
+}
+
+.toast-header {
+  background: linear-gradient(to right, #4b6cb7, #182848);
+  color: white;
+  border-bottom: 1px solid rgba(0, 0, 0, .05);
+}
+
+.toast-body {
+  padding: 0.75rem;
+  color: #182848;
+}

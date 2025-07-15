@@ -1,0 +1,59 @@
+<%# card, shadow-lg, mx-auto, animation %>
+<div class="card shadow-lg mx-auto animate__animated animate__fadeIn" style="max-width: 400px;">
+     <div class="card-body">
+       <h2 class="card-title text-center mb-4">Sign Up</h2>
+       <%# resource for @user by devise, user:, path for creating new account /users, ajax, id for js%>
+       <%= form_for(resource, as: resource_name, url: registration_path(resource_name), remote: true, html: { id: 'signup-form', class: 'form-group' }) do |f| %>
+         <%# helper method from devise to display error while signing up %>
+         <%= devise_error_messages! %>
+         <%# NAME %>
+         <div class="form-group mb-3">
+           <%= f.label :name, class: 'form-label' %>
+           <%= f.text_field :name, autofocus: true, class: 'form-control' %>
+         </div>
+         <%# EMAIL %>
+         <div class="form-group mb-3">
+           <%= f.label :email, class: 'form-label' %>
+           <%= f.email_field :email, class: 'form-control' %>
+         </div>
+          <%# PHONE %>
+         <div class="form-group mb-3">
+           <%= f.label :phone, class: 'form-label' %>
+           <%= f.text_field :phone, class: 'form-control' %>
+         </div>
+          <%# ROLE %>
+         <div class="form-group mb-3">
+           <%= f.label :role, class: 'form-label' %>
+           <%# User-> displayed, user-> saved in DB %>
+           <%= f.select :role, [['User', 'user'], ['Admin', 'admin']], {}, class: 'form-control' %>
+         </div>
+          <%# PASSWORD %>
+         <div class="form-group mb-3">
+           <%= f.label :password, class: 'form-label' %>
+           <%= f.password_field :password, autocomplete: "new-password", class: 'form-control' %>
+         </div>
+          <%# PASSWORD CONFIRMATION %>
+         <div class="form-group mb-3">
+           <%= f.label :password_confirmation, class: 'form-label' %>
+           <%= f.password_field :password_confirmation, autocomplete: "new-password", class: 'form-control' %>
+         </div>
+         <div class="form-group mb-3">
+           <%= f.submit "Sign Up", class: 'btn btn-primary btn-block' %>
+             <i class="fas fa-user-plus mr-2"></i> Sign Up
+         </div>
+       <% end %>
+       <%# resource - action - provider (rails routes) %>
+       <%= link_to user_google_oauth2_omniauth_authorize_path, method: :post, class: 'btn btn-outline-primary btn-block mt-3', data: { turbolinks: false } do %>
+         <i class="fab fa-google mr-2"></i> Sign in with Google
+       <% end %>
+       <div id="signup-errors" class="text-danger mt-2"></div>
+     </div>
+   </div>
+   <script>
+     $(document).on('ajax:success', '#signup-form', function(event, data) {
+       window.location.href = '<%= root_path %>';
+     });
+     $(document).on('ajax:error', '#signup-form', function(event, xhr, status, error) {
+       $('#signup-errors').html(xhr.responseText);
+     });
+   </script>

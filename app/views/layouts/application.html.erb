@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ChatApp</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag 'application', media: 'all' %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <%= javascript_include_tag 'application' %>
+    <script>
+      window.currentUser = {
+        id: <%= user_signed_in? ? current_user.id : 'null' %>,
+        email: <%= user_signed_in? ? current_user.email.to_json : 'null' %>,
+        role: <%= user_signed_in? ? current_user.role.to_json : 'null' %>
+      };
+    </script>
+  </head>
+  <body style="font-family: 'Inter', sans-serif; background: linear-gradient(to bottom, #f7fafc, #e2e8f0);">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background: linear-gradient(to right, #4b6cb7, #182848);">
+      <div class="container">
+        <a class="navbar-brand" href="/">ChatApp</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ml-auto">
+            <% if user_signed_in? %>
+              <li class="nav-item">
+                <span class="nav-link">Welcome, <%= current_user.name %></span>
+              </li>
+              <li class="nav-item">
+                <%= link_to 'Chat', chats_path, class: 'nav-link btn btn-outline-light mx-2' %>
+              </li>
+              <!-- Notification Icon and Dropdown -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="notificationDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <i class="fas fa-bell"></i>
+                  <% unread_count = Chat.where(receiver_id: current_user.id, read: false).count %>
+                  <% if unread_count > 0 %>
+                    <span class="badge badge-danger notification-badge" id="unread-count"><%= unread_count %></span>
+                  <% else %>
+                    <span class="badge badge-danger notification-badge" id="unread-count" style="display: none;"></span>
+                  <% end %>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationDropdown" id="notification-menu">
+                  <% Chat.where(receiver_id: current_user.id, read: false).order(created_at: :desc).limit(5).each do |chat| %>
+                    <a class="dropdown-item" href="<%= chat_path(chat.sender_id) %>">
+                      <strong><%= chat.sender.name %></strong>: <%= truncate(chat.message, length: 30) %>
+                      <small class="text-muted"><%= time_ago_in_words(chat.created_at) %> ago</small>
+                    </a>
+                  <% end %>
+                  <% if Chat.where(receiver_id: current_user.id, read: false).count == 0 %>
+                    <div class="dropdown-item text-muted">No unread messages</div>
+                  <% end %>
+                </div>
+              </li>
+              <li class="nav-item">
+                <%= link_to 'Sign out', destroy_user_session_path, method: :delete, class: 'nav-link btn btn-outline-light mx-2' %>
+              </li>
+            <% else %>
+              <li class="nav-item">
+                <%= link_to 'Sign in', new_user_session_path, class: 'nav-link btn btn-outline-light mx-2' %>
+              </li>
+              <li class="nav-item">
+                <%= link_to 'Sign up', new_user_registration_path, class: 'nav-link btn btn-outline-light mx-2' %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <main class="container py-5">
+      <%= yield %>
+    </main>
+    <footer class="bg-dark text-white text-center py-3">
+      <p>© 2025 ChatApp. All rights reserved.</p>
+    </footer>
+    <% if user_signed_in? %>
+      <script>
+        App.notifications = App.cable.subscriptions.create(
+          { channel: "NotificationsChannel" },
+          {
+            connected() {
+              console.log("Connected to NotificationsChannel");
+            },
+            disconnected() {
+              console.log("Disconnected from NotificationsChannel");
+            },
+            received(data) {
+              if (data.action === 'new_message') {
+                const badge = $('#unread-count');
+                let currentCount = parseInt(badge.text()) || 0;
+                badge.text(currentCount + 1).show();
+                $('#notification-menu').prepend(`
+                  <a class="dropdown-item" href="${data.chat_path}">
+                    <strong>${data.sender_name}</strong>: ${data.message.substring(0, 30)}${data.message.length > 30 ? '...' : ''}
+                    <small class="text-muted">just now</small>
+                  </a>
+                `);
+                if ($('#notification-menu .dropdown-item').length > 5) {
+                  $('#notification-menu .dropdown-item').last().remove();
+                }
+                if ($('#notification-menu .text-muted').length > 0) {
+                  $('#notification-menu .text-muted').remove();
+                }
+              } else if (data.action === 'read_messages') {
+                const badge = $('#unread-count');
+                badge.text(data.unread_count).toggle(data.unread_count > 0);
+                $('#notification-menu').html('');
+                if (data.unread_count === 0) {
+                  $('#notification-menu').append('<div class="dropdown-item text-muted">No unread messages</div>');
+                } else {
+                  data.messages.forEach(msg => {
+                    $('#notification-menu').append(`
+                      <a class="dropdown-item" href="/chats/${msg.sender_id}">
+                        <strong>${msg.sender_name}</strong>: ${msg.message.substring(0, 30)}${msg.message.length > 30 ? '...' : ''}
+                        <small class="text-muted">${msg.time_ago}</small>
+                      </a>
+                    `);
+                  });
+                }
+              }
+            }
+          }
+        );
+      </script>
+    <% end %>
+  </body>
+</html>

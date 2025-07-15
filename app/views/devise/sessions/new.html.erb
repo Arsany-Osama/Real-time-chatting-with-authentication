@@ -1,0 +1,38 @@
+<div class="card shadow-lg mx-auto animate__animated animate__fadeIn" style="max-width: 400px;">
+     <div class="card-body">
+       <h2 class="card-title text-center mb-4">Log In</h2>
+       <%= form_for(resource, as: resource_name, url: session_path(resource_name), remote: true, html: { id: 'login-form', class: 'form-group' }) do |f| %>
+         <div class="form-group mb-3">
+           <%= f.label :email, class: 'form-label' %>
+           <%= f.email_field :email, autofocus: true, class: 'form-control' %>
+         </div>
+         <div class="form-group mb-3">
+           <%= f.label :password, class: 'form-label' %>
+           <%= f.password_field :password, autocomplete: "current-password", class: 'form-control' %>
+         </div>
+         <% if devise_mapping.rememberable? %>
+           <div class="form-group mb-3 form-check">
+             <%= f.check_box :remember_me, class: 'form-check-input' %>
+             <%= f.label :remember_me, class: 'form-check-label' %>
+           </div>
+         <% end %>
+         <div class="form-group mb-3">
+           <%= f.submit "Log In", class: 'btn btn-primary btn-block' %>
+             <i class="fas fa-sign-in-alt mr-2"></i> Log In
+           </a>
+         </div>
+       <% end %>
+       <%= link_to user_google_oauth2_omniauth_authorize_path, method: :post, class: 'btn btn-outline-primary btn-block mt-3', data: { turbolinks: false } do %>
+         <i class="fab fa-google mr-2"></i> Sign in with Google
+       <% end %>
+       <div id="login-errors" class="text-danger mt-2"></div>
+     </div>
+   </div>
+   <script>
+     $(document).on('ajax:success', '#login-form', function(event, data) {
+       window.location.href = '<%= root_path %>';
+     });
+     $(document).on('ajax:error', '#login-form', function(event, xhr, status, error) {
+       $('#login-errors').html(xhr.responseText);
+     });
+   </script>

@@ -1,0 +1,16 @@
+# inherit_gem:
+#   rubocop-rails: config/rails.yml
+AllCops:
+  TargetRubyVersion: 2.5
+  NewCops: enable
+  #TargetRailsVersion: 5.2
+  Exclude:
+    - 'db/**/*'
+    - 'config/**/*'
+    - 'script/**/*'
+    - 'bin/**/*'
+Style/Documentation:
+  Enabled: false
+#Metrics/LineLength:
+Layout/LineLength:
+  Max: 120
